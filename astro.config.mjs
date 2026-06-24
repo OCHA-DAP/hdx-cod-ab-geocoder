@@ -4,13 +4,15 @@ import { defineConfig } from "astro/config";
 import { fileURLToPath } from "node:url";
 
 export default defineConfig({
+  site: "https://ocha-dap.github.io",
+  base: "/hdx-cod-ab-geocoder",
   integrations: [
     svelte(),
     AstroPWA({
       strategies: "injectManifest",
       srcDir: "src",
       filename: "sw.ts",
-      registerType: "autoUpdate",
+      registerType: "prompt",
       injectRegister: "auto",
       injectManifest: {
         globPatterns: ["**/*.{html,css,js,ico,svg,png,webmanifest,woff,woff2}"],

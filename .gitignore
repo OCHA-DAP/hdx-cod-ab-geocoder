@@ -27,5 +27,7 @@ npm-debug.log*
 .playwright-cli/
 tmp/
 
-# Assets synced at build time — see package.json prebuild
+# Assets generated at build time — see package.json build scripts
 public/duckdb/
+public/boundaries/
+public/catalog.json

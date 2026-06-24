@@ -2,8 +2,19 @@
 import Layout from "../layouts/Layout.astro";
 ---
 
-<Layout title="HDX COD AB Geocoder" description="Browser-only geocoder for COD administrative boundaries.">
-  <main>
-    <h1>HDX COD AB Geocoder</h1>
-  </main>
+<Layout title="HDX COD-AB Geocoder" description="Browser-only geocoder for COD administrative boundaries.">
+  <div id="app"></div>
 </Layout>
+
+<script>
+  import App from "../components/App.svelte";
+  import { mount } from "svelte";
+  mount(App, { target: document.getElementById("app")! });
+</script>
+
+<style>
+  #app {
+    width: 100%;
+    height: 100%;
+  }
+</style>
