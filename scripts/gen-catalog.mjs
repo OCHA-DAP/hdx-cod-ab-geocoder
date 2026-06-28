@@ -11,9 +11,10 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
-const BASE_URL = "https://data.source.coop/hdx/cod-ab/original";
+const BASE_URL = "https://data.source.coop/hdx/cod-ab";
 const OUT_FILE = join(ROOT, "public", "catalog.json");
 const CONCURRENCY = 8;
+const MAX_ADM_LEVELS = 5;
 
 async function fetchJson(url) {
   const res = await fetch(url);
@@ -21,10 +22,10 @@ async function fetchJson(url) {
   return res.json();
 }
 
-async function buildCountry(catalogId) {
+async function buildCountry(iso3Lower) {
   let cat;
   try {
-    cat = await fetchJson(`${BASE_URL}/${catalogId}/catalog.json`);
+    cat = await fetchJson(`${BASE_URL}/${iso3Lower}/latest/catalog.json`);
   } catch {
     return null;
   }
@@ -36,28 +37,30 @@ async function buildCountry(catalogId) {
 
   if (!name || !iso2 || !iso3 || maxAdmLevel === undefined) return null;
 
-  const isoLower = iso3.toLowerCase();
   let bbox = [-180, -90, 180, 90];
   const adminLevels = [];
 
-  for (let level = 0; level <= maxAdmLevel; level++) {
-    const collId = `${isoLower}_admin${level}`;
+  for (let level = 0; level < MAX_ADM_LEVELS; level++) {
+    const collUrl = `${BASE_URL}/${iso3Lower}/latest/adm${level}/collection.json`;
     let col;
     try {
-      col = await fetchJson(`${BASE_URL}/${catalogId}/${collId}/collection.json`);
+      col = await fetchJson(collUrl);
     } catch {
-      continue;
+      break;
     }
 
     const colBbox = col.extent?.spatial?.bbox?.[0];
     if (level === 0 && colBbox) bbox = colBbox;
-    const columns = (col["table:columns"] ?? []).map((c) => c.name);
+
+    const columns = (col["table:columns"] ?? [])
+      .map((c) => c.name)
+      .filter((c) => c !== "geometry");
 
     adminLevels.push({
       level,
-      id: collId,
-      pmtilesUrl: `${BASE_URL}/${catalogId}/${collId}/${collId}.pmtiles`,
-      parquetUrl: `${BASE_URL}/${catalogId}/${collId}/${collId}.parquet`,
+      id: "original",
+      pmtilesUrl: `${BASE_URL}/${iso3Lower}/latest/adm${level}/original.pmtiles`,
+      parquetUrl: `${BASE_URL}/${iso3Lower}/latest/adm${level}/original.parquet`,
       bbox: colBbox ?? bbox,
       columns,
     });
@@ -65,16 +68,16 @@ async function buildCountry(catalogId) {
 
   if (adminLevels.length === 0) return null;
 
-  return { iso3, iso2, name, maxAdmLevel, bbox, adminLevels, catalogId };
+  return { iso3, iso2, name, maxAdmLevel, bbox, adminLevels };
 }
 
 const root = await fetchJson(`${BASE_URL}/catalog.json`);
-const catalogIds = (root.links ?? [])
+const iso3Codes = (root.links ?? [])
   .filter((l) => l.rel === "child")
-  .map((l) => l.href.replace(/\/catalog\.json$/, "").split("/").at(-1))
-  .filter((id) => /^cod_ab_[a-z]+$/.test(id));
+  .map((l) => l.href.replace(/^\.\//, "").replace(/\/catalog\.json$/, ""))
+  .filter((id) => /^[a-z]{3}$/.test(id));
 
-process.stderr.write(`Processing ${catalogIds.length} countries...\n`);
+process.stderr.write(`Processing ${iso3Codes.length} countries...\n`);
 
 const results = [];
 const errors = [];
@@ -82,15 +85,15 @@ let idx = 0;
 
 await Promise.all(
   Array.from({ length: CONCURRENCY }, async () => {
-    while (idx < catalogIds.length) {
-      const catalogId = catalogIds[idx++];
+    while (idx < iso3Codes.length) {
+      const iso3Lower = iso3Codes[idx++];
       try {
-        const entry = await buildCountry(catalogId);
+        const entry = await buildCountry(iso3Lower);
         if (entry) results.push(entry);
-        else process.stderr.write(`  SKIP ${catalogId}: missing required fields\n`);
+        else process.stderr.write(`  SKIP ${iso3Lower}: missing required fields\n`);
       } catch (err) {
-        errors.push(`${catalogId}: ${err.message}`);
-        process.stderr.write(`  ERROR ${catalogId}: ${err.message}\n`);
+        errors.push(`${iso3Lower}: ${err.message}`);
+        process.stderr.write(`  ERROR ${iso3Lower}: ${err.message}\n`);
       }
     }
   }),

@@ -1,6 +1,6 @@
 export interface AdminLevel {
   level: number;
-  id: string; // e.g. "tun_admin2"
+  id: string; // PMTiles vector layer name, e.g. "original"
   pmtilesUrl: string;
   parquetUrl: string;
   bbox: [number, number, number, number];
@@ -14,7 +14,6 @@ export interface Country {
   maxAdmLevel: number;
   bbox: [number, number, number, number];
   adminLevels: AdminLevel[];
-  catalogId: string; // e.g. "cod_ab_tun"
 }
 
 export interface PcodeResult {

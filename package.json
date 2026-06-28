@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "astro dev",
+    "dev:stop": "astro dev stop",
     "build": "node scripts/gen-catalog.mjs && node scripts/gen-boundaries.mjs && astro build",
     "catalog": "node scripts/gen-catalog.mjs",
     "boundaries": "node scripts/gen-boundaries.mjs",
