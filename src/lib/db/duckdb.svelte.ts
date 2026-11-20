@@ -66,6 +66,11 @@ export async function initDuckDB(): Promise<void> {
 
     await conn.query("SET threads = 1");
     await conn.query("SET preserve_insertion_order = false");
+    // Cache core's OGC:CRS84 before spatial's PROJ lookup, whose WKT2 export of "CRS84" throws stoi
+    // in WASM. Outside an explicit transaction the cast throws an INTERNAL error.
+    await conn.query("BEGIN");
+    await conn.query("SELECT NULL::GEOMETRY('OGC:CRS84')");
+    await conn.query("COMMIT");
 
     try {
       try {

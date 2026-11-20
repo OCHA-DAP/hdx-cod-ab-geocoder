@@ -11,7 +11,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
-const BASE_URL = "https://data.source.coop/hdx/cod-ab";
+const BASE_URL = "https://data.source.coop/hdx/cod-ab/original";
 const OUT_FILE = join(ROOT, "public", "catalog.json");
 const CONCURRENCY = 8;
 const MAX_ADM_LEVELS = 5;
@@ -41,7 +41,8 @@ async function buildCountry(iso3Lower) {
   const adminLevels = [];
 
   for (let level = 0; level < MAX_ADM_LEVELS; level++) {
-    const collUrl = `${BASE_URL}/${iso3Lower}/latest/adm${level}/collection.json`;
+    const id = `${iso3Lower}_admin${level}`;
+    const collUrl = `${BASE_URL}/${iso3Lower}/latest/${id}/collection.json`;
     let col;
     try {
       col = await fetchJson(collUrl);
@@ -56,11 +57,16 @@ async function buildCountry(iso3Lower) {
       .map((c) => c.name)
       .filter((c) => c !== "geometry");
 
+    const hrefs = Object.values(col.assets ?? {}).map((a) => new URL(a.href, collUrl).href);
+    const pmtilesUrl = hrefs.find((h) => h.endsWith(".pmtiles"));
+    const parquetUrl = hrefs.find((h) => h.endsWith(".parquet"));
+    if (!pmtilesUrl || !parquetUrl) throw new Error(`missing pmtiles/parquet asset in ${collUrl}`);
+
     adminLevels.push({
       level,
-      id: "original",
-      pmtilesUrl: `${BASE_URL}/${iso3Lower}/latest/adm${level}/original.pmtiles`,
-      parquetUrl: `${BASE_URL}/${iso3Lower}/latest/adm${level}/original.parquet`,
+      id,
+      pmtilesUrl,
+      parquetUrl,
       bbox: colBbox ?? bbox,
       columns,
     });
