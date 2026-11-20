@@ -1,6 +1,6 @@
 export interface AdminLevel {
   level: number;
-  id: string; // PMTiles vector layer name, e.g. "original"
+  id: string; // PMTiles vector layer name, e.g. "afg_admin1"
   pmtilesUrl: string;
   parquetUrl: string;
   bbox: [number, number, number, number];
