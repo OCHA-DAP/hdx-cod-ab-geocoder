@@ -14,7 +14,6 @@ const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const BASE_URL = "https://data.source.coop/hdx/cod-ab/original";
 const OUT_FILE = join(ROOT, "public", "catalog.json");
 const CONCURRENCY = 8;
-const MAX_ADM_LEVELS = 5;
 
 async function fetchJson(url) {
   const res = await fetch(url);
@@ -40,7 +39,7 @@ async function buildCountry(iso3Lower) {
   let bbox = [-180, -90, 180, 90];
   const adminLevels = [];
 
-  for (let level = 0; level < MAX_ADM_LEVELS; level++) {
+  for (let level = 0; level <= maxAdmLevel; level++) {
     const id = `${iso3Lower}_admin${level}`;
     const collUrl = `${BASE_URL}/${iso3Lower}/latest/${id}/collection.json`;
     let col;
